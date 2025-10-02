@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# pdf2txt
+# OCR all PDFs in the current directory to ./read_pdf/
+# Faster path (no rebuild), high DPI, explicit PSM, and Git ignore.
+
+set -euo pipefail
+
+need() { command -v "$1" >/dev/null 2>&1 || { echo "Missing $1. Install via Homebrew."; exit 1; }; }
+need pdftotext
+need ocrmypdf
+command -v pdfinfo >/dev/null 2>&1 || { echo "Missing pdfinfo (poppler); brew install poppler"; exit 1; }
+
+# Choose ImageMagick command if present (for optional future use)
+if command -v magick >/dev/null 2>&1; then IMCMD="magick";
+elif command -v convert >/dev/null 2>&1; then IMCMD="convert";
+else IMCMD=""; fi
+
+OUTDIR="read_pdf"
+mkdir -p "$OUTDIR"
+
+# Keep outputs ignored by Git
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  touch .gitignore
+  { echo ""; echo "read_pdf/"; } >> .gitignore
+  awk '!x[$0]++' .gitignore > .gitignore.tmp && mv .gitignore.tmp .gitignore
+fi
+
+# Tunables (override via env): LANGS="eng+kor" DPI=600 PSM=6 TESS_TIMEOUT=180
+LANGS="${LANGS:-eng}"
+DPI="${DPI:-600}"
+PSM="${PSM:-6}"                  # 6=single block, 4=single column, 11=sparse
+TESS_TIMEOUT="${TESS_TIMEOUT:-180}"
+
+TMPROOT="$(mktemp -d)"
+trap 'rm -rf "$TMPROOT"' EXIT
+
+shopt -s nullglob
+pdfs=( *.pdf *.PDF )
+[ ${#pdfs[@]} -gt 0 ] || { echo "No PDF files found"; exit 0; }
+
+# Optional: process smallest/easiest first (pages*size heuristic)
+worklist=()
+for f in "${pdfs[@]}"; do
+  pages=$(pdfinfo "$f" 2>/dev/null | awk -F': *' '$1=="Pages"{print $2}' || echo 1)
+  size=$(stat -f%z "$f" 2>/dev/null || stat -c%s "$f")
+  cost=$(( pages * (size/1024 + 1) ))
+  worklist+=( "$cost"$'\t'"$f" )
+done
+IFS=$'\n' sorted=( $(printf '%s\n' "${worklist[@]}" | sort -n -k1,1) ); unset IFS
+
+for line in "${sorted[@]}"; do
+  pdf="${line#*$'\t'}"
+  echo "Processing: $pdf"
+  base="$(basename "$pdf")"
+  name="${base%.*}"
+  safe="${name// /_}"
+
+  OCR_PDF="$TMPROOT/${safe}_ocr.pdf"
+
+  # Use supported flags: --tesseract-pagesegmode for PSM
+  if ! ocrmypdf --force-ocr --rotate-pages --deskew \
+                --image-dpi "$DPI" --language "$LANGS" \
+                --tesseract-timeout "$TESS_TIMEOUT" \
+                --tesseract-pagesegmode "$PSM" \
+                --optimize 2 --quiet \
+                "$pdf" "$OCR_PDF"; then
+    echo "  ocrmypdf failed on $pdf"
+    continue
+  fi
+
+  TXT_TMP="$TMPROOT/${safe}.txt"
+  if ! pdftotext -q -layout -enc UTF-8 "$OCR_PDF" "$TXT_TMP"; then
+    echo "  pdftotext failed on $pdf"
+    continue
+  fi
+
+  # Retry once at higher DPI if very little text (tiny fonts)
+  chars=$(tr -d '[:space:]' < "$TXT_TMP" | wc -c | tr -d ' ')
+  if [ "$chars" -lt 50 ]; then
+    echo "  Low text detected — retrying at DPI=700"
+    if ocrmypdf --force-ocr --rotate-pages --deskew \
+                --image-dpi 700 --language "$LANGS" \
+                --tesseract-timeout "$TESS_TIMEOUT" \
+                --tesseract-pagesegmode "$PSM" \
+                --optimize 2 --quiet \
+                "$pdf" "$OCR_PDF"; then
+      pdftotext -q -layout -enc UTF-8 "$OCR_PDF" "$TXT_TMP" || true
+    fi
+  fi
+
+  awk 'BEGIN{RS="";ORS="\n\n"} {gsub(/\r/,""); print $0}' "$TXT_TMP" > "$OUTDIR/${safe}.txt"
+  echo "  Saved -> $OUTDIR/${safe}.txt"
+done
+
+echo "Done. Output files in: $OUTDIR"
+

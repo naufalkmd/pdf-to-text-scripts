@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# pdf2txt-lite
+# Fast path: skip OCR on pages that already have text; minimal processing; output names end with -lite.txt.
+
+set -euo pipefail
+
+need() { command -v "$1" >/dev/null 2>&1 || { echo "Missing $1. Install via Homebrew."; exit 1; }; }
+need pdftotext
+need ocrmypdf
+command -v pdfinfo >/dev/null 2>&1 || { echo "Missing pdfinfo (poppler); brew install poppler"; exit 1; }
+
+OUTDIR="read_pdf"
+mkdir -p "$OUTDIR"
+
+# Keep outputs ignored by Git
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  touch .gitignore
+  { echo ""; echo "read_pdf/"; } >> .gitignore
+  awk '!x[$0]++' .gitignore > .gitignore.tmp && mv .gitignore.tmp .gitignore
+fi
+
+# Tunables (override via env): LANGS="eng+kor" PSM=6 TESS_TIMEOUT=60
+LANGS="${LANGS:-eng}"
+PSM="${PSM:-6}"                 # 6=single block, 4=single column, 11=sparse
+TESS_TIMEOUT="${TESS_TIMEOUT:-60}"
+
+TMPROOT="$(mktemp -d)"
+trap 'rm -rf "$TMPROOT"' EXIT
+
+shopt -s nullglob
+pdfs=( *.pdf *.PDF )
+[ ${#pdfs[@]} -gt 0 ] || { echo "No PDF files found"; exit 0; }
+
+# Process in filename order (simple/fast)
+for pdf in "${pdfs[@]}"; do
+  echo "Processing (lite): $pdf"
+  base="$(basename "$pdf")"
+  name="${base%.*}"
+  safe="${name// /_}"
+
+  OCR_PDF="$TMPROOT/${safe}_ocr.pdf"
+
+  # Lite: skip OCR on pages with existing text; minimal processing, no rasterizing
+  if ! ocrmypdf --skip-text \
+                --language "$LANGS" \
+                --tesseract-timeout "$TESS_TIMEOUT" \
+                --tesseract-pagesegmode "$PSM" \
+                --output-type pdf \
+                --quiet \
+                "$pdf" "$OCR_PDF"; then
+    echo "  ocrmypdf failed on $pdf"
+    continue
+  fi
+
+  TXT_TMP="$TMPROOT/${safe}.txt"
+  if ! pdftotext -q -layout -enc UTF-8 "$OCR_PDF" "$TXT_TMP"; then
+    echo "  pdftotext failed on $pdf"
+    continue
+  fi
+
+  # Output filename: add -lite suffix
+  out_txt="$OUTDIR/${safe}-lite.txt"
+  awk 'BEGIN{RS="";ORS="\n\n"} {gsub(/\r/,""); print $0}' "$TXT_TMP" > "$out_txt"
+  echo "  Saved -> $out_txt"
+done
+
+echo "Done (lite). Output files in: $OUTDIR"
+
