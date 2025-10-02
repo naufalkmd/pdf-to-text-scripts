@@ -1,6 +1,12 @@
 # PDF2TXT Converter
 
-A simple and efficient PDF to text converter with two modes: standard and lite conversion.
+### Introduction
+
+pdf2txt_converter is a tool designed to bridge the gap between PDF documents and code editors or AI-powered agents. While modern development environments like VSCode, enhanced by GitHub Copilot or other AI agents, excel at reading and assisting with code and text files, they struggle to directly extract information from PDF files—especially when those PDFs contain screenshots or scanned images rather than selectable text. This limitation can hinder productivity, making it difficult to reference documentation, share code snippets, or extract insights from visual-only PDFs.
+
+### Problem Addressed
+
+This tool solves a common developer pain point: GitHub Copilot and other AI agents in VSCode cannot natively read or interpret content from PDF files, particularly when the PDF includes screenshots or non-selectable text. pdf2txt_converter enables seamless conversion of such PDFs into readable text, unlocking their content for use within your favorite coding tools and workflows.
 
 ## Features
 
