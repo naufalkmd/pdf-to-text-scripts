@@ -111,6 +111,23 @@ This tool solves a common developer pain point: GitHub Copilot and other AI agen
    pdf2txt.bat
    ```
 
+5. **Make commands globally available** (Optional):
+
+   Add the converter to your system PATH to use from any directory:
+
+   ```powershell
+   # Add PDF converter to PATH (replace with your actual path)
+   [Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Users\YourUsername\.vscode\pdf2txt_converter", "User")
+   ```
+
+   After this, you can use the commands from anywhere:
+
+   ```cmd
+   cd C:\Documents
+   pdf2txt-lite.bat    # Works from any directory
+   pdf2txt.bat         # Works from any directory
+   ```
+
 #### Option 2: Using Chocolatey
 
 1. **Install Chocolatey** (requires Administrator):
@@ -205,22 +222,36 @@ Place your PDF files in the same directory as the executables and run:
 
 ### Running from Anywhere (Optional)
 
+**For Mac/Linux:**
 To run `pdf2txt` from any directory without `./`, add the current directory to your PATH:
 
 ```bash
 # Temporary (current session only)
 export PATH="$PATH:$(pwd)"
 
-# Now you can run:
+# Permanent (add to ~/.bashrc or ~/.zshrc)
+echo 'export PATH="$PATH:/path/to/pdf2txt_converter"' >> ~/.bashrc
+```
+
+**For Windows:**
+Add the PDF converter directory to your system PATH:
+
+```powershell
+# Add to PATH permanently (replace with your actual path)
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\path\to\pdf2txt_converter", "User")
+```
+
+After setting up PATH, you can run from any directory:
 pdf2txt
 pdf2txt-lite
-```
+
+````
 
 For permanent access, add the full path to your shell configuration file (`~/.zshrc`, `~/.bashrc`, etc.):
 
 ```bash
 export PATH="$PATH:/full/path/to/pdf2txt_converter"
-```
+````
 
 ## Output Structure
 

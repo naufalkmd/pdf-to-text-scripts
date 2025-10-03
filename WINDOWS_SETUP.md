@@ -125,6 +125,38 @@ powershell -ExecutionPolicy Bypass -File "pdf2txt-lite.ps1"
 powershell -ExecutionPolicy Bypass -File "pdf2txt.ps1"
 ```
 
+### Making Commands Globally Available
+
+To use the PDF converter from any directory (not just the installation folder):
+
+#### Add to System PATH
+
+```powershell
+# Replace with your actual installation path
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Users\YourUsername\.vscode\pdf2txt_converter", "User")
+```
+
+#### Alternative: Manual PATH Setup
+
+1. Press `Windows + R`, type `sysdm.cpl`, press Enter
+2. Click "Environment Variables..."
+3. In "User variables", find "Path" → "Edit" → "New"
+4. Add your PDF converter directory path
+5. Click "OK" on all dialogs
+6. Restart terminal
+
+#### Usage After PATH Setup
+
+```cmd
+# Now works from any directory
+cd C:\Documents
+pdf2txt-lite.bat         # Process PDFs in Documents folder
+pdf2txt.bat              # Full OCR from anywhere
+
+cd C:\Downloads
+pdf2txt-lite.bat         # Process PDFs in Downloads folder
+```
+
 ### Advanced Usage
 
 Both scripts accept parameters:
