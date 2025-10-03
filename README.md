@@ -10,11 +10,31 @@ This tool solves a common developer pain point: GitHub Copilot and other AI agen
 
 ## Features
 
-- **Standard Mode (`pdf2txt`)**: Full-featured PDF text extraction
-- **Lite Mode (`pdf2txt-lite`)**: Lightweight PDF text extraction with optimized processing
+- **Cross-Platform Support**: Works on macOS, Linux, and Windows
+- **Standard Mode (`pdf2txt`)**: Full-featured PDF text extraction with OCR
+- **Lite Mode (`pdf2txt-lite`)**: Lightweight PDF text extraction without OCR (works without Ghostscript)
 - **Batch Processing**: Automatically processes all PDF files in the current directory
 - **Organized Output**: All converted text files are saved in the `read_pdf/` directory
 - **Clean Filenames**: Automatically converts spaces to underscores in output filenames
+
+## File Structure
+
+### For Mac/Linux Users:
+
+- `pdf2txt` - Full OCR processing (bash)
+- `pdf2txt-lite` - Lightweight OCR version (bash)
+
+### For Windows Users:
+
+- `pdf2txt.ps1` + `pdf2txt.bat` - Full OCR version (PowerShell + launcher) - _Requires Ghostscript_
+- `pdf2txt-lite.ps1` + `pdf2txt-lite.bat` - Basic text extraction, no OCR (PowerShell + launcher) - _Works immediately_
+- `WINDOWS_SETUP.md` - Detailed Windows installation guide
+
+**Quick Start for Windows:**
+
+1. Download and install [Ghostscript](https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/)
+2. Clone this repository
+3. Double-click `pdf2txt.bat` for full OCR or `pdf2txt-lite.bat` for basic extraction
 
 ## Installation
 
@@ -59,35 +79,50 @@ This tool solves a common developer pain point: GitHub Copilot and other AI agen
 
 ### Windows Installation
 
-#### Option 1: Using Chocolatey (Recommended)
+#### Option 1: Quick Installation (Recommended)
 
-1. **Install Chocolatey** (if not already installed):
-   Open PowerShell as Administrator and run:
+1. **Install Ghostscript** (Required for full OCR):
+
+   - Go to [Ghostscript Releases](https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/)
+   - Download `gs10060w64.exe` (Windows 64-bit installer)
+   - Run installer as Administrator
+   - Install to default location: `C:\Program Files\gs\`
+
+2. **Install Python dependencies**:
 
    ```powershell
-   Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-   ```
-
-2. **Install required dependencies**:
-
-   ```powershell
-   choco install git wget tesseract imagemagick
-   # Note: You may also need to install poppler and ocrmypdf via pip:
    pip install ocrmypdf
    ```
 
-3. **Clone the repository** (in Command Prompt or PowerShell):
+3. **Clone the repository**:
 
    ```cmd
    git clone https://github.com/naufalkmd/pdf2txt_converter.git
    cd pdf2txt_converter
    ```
 
-4. **Run the converter**:
+4. **Test the installation**:
+
    ```cmd
-   pdf2txt.exe
-   # or
-   pdf2txt-lite.exe
+   REM Test basic extraction (works without Ghostscript)
+   pdf2txt-lite.bat
+
+   REM Test full OCR processing (requires Ghostscript)
+   pdf2txt.bat
+   ```
+
+#### Option 2: Using Chocolatey
+
+1. **Install Chocolatey** (requires Administrator):
+
+   ```powershell
+   Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+   ```
+
+2. **Install dependencies**:
+   ```powershell
+   choco install ghostscript git tesseract -y
+   pip install ocrmypdf
    ```
 
 #### Option 2: Using WSL (Windows Subsystem for Linux)
@@ -272,6 +307,65 @@ The `read_pdf/` directory is created automatically. If you encounter issues:
 ```bash
 mkdir -p read_pdf
 ```
+
+## 🔧 Troubleshooting
+
+### Windows Issues
+
+**"Ghostscript not found" Error:**
+
+```cmd
+REM Download and install Ghostscript first
+REM https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/
+REM Then test:
+gswin64c --version
+```
+
+**PowerShell Execution Policy:**
+
+```powershell
+REM Use the .bat files instead of direct PowerShell execution
+pdf2txt-lite.bat
+pdf2txt.bat
+```
+
+**No text extracted:**
+
+- Try the lite version first: `pdf2txt-lite.bat`
+- For scanned PDFs, ensure Ghostscript is installed for OCR
+
+### Mac/Linux Issues
+
+**Missing dependencies:**
+
+```bash
+# macOS
+brew install poppler tesseract ocrmypdf
+
+# Ubuntu/Debian
+sudo apt install poppler-utils tesseract-ocr
+pip3 install ocrmypdf
+```
+
+**Permission denied:**
+
+```bash
+chmod +x pdf2txt pdf2txt-lite
+```
+
+### General Issues
+
+**No PDF files found:**
+
+- Ensure PDF files are in the same directory as the scripts
+- Check file permissions
+
+**Poor OCR quality:**
+
+- Try different DPI settings (Windows): `pdf2txt.ps1 -DPI 800`
+- Use appropriate language codes for non-English text
+
+**For detailed troubleshooting, see `WINDOWS_SETUP.md`**
 
 ## Contributing
 
